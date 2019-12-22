@@ -67,8 +67,9 @@ mutable struct COXVariables{T,A}
     W::A
     q::A # (1 - π)δ
     eval_obj::Bool
-    function COXVariables(X::LinearMap{T,2}, δ::AbstractVector, t::AbstractVector, penalty::Penalty;
-            σ::Real=1/(2*power(X)^2), eval_obj::Bool=false) where {T}
+    function COXVariables(X::LinearMap, δ::AbstractVector, t::AbstractVector, penalty::Penalty;
+            σ::Real=1/(2*power(X)^2), eval_obj::Bool=false)
+        T = eltype(X)
         m, n = size(X)
         A = typeof(X).name.wrapper
         β = A{T}(undef, n)
