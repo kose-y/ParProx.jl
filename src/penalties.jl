@@ -25,7 +25,6 @@ function value(f::NormL1{T,A}, x::AbstractArray{T}) where {T <: Real, A <: Abstr
     return sum(abs.(x))
 end
 
-
 function _get_grouplasso_args(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: Integer}
     @assert idx[1] == 1
     diff = idx[2:end] - idx[1:end-1]
@@ -42,10 +41,6 @@ function _get_grouplasso_args(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: In
     tmp_p = Vector{T}(undef, p)
     tmp_g = Vector{T}(undef, ngrps)
     return λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p,tmp_g
-end
-
-function gather!(out, vec, ind)
-    out .= vec[ind]
 end
 
 for Pen in (:GroupNormL2, :IndGroupBallL2) 
