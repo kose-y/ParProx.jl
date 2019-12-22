@@ -27,15 +27,19 @@ function power(x::LinearMap{T}; maxiter::Int=1000, eps::AbstractFloat=1e-6) wher
     s
 end
 
+"""
+    COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
+
+Stopping and evaluation rule for Cox regression
+"""
 mutable struct COXUpdate
     maxiter::Int
     step::Int
-    verbose::Bool
     tol::Real
-    function COXUpdate(; maxiter::Int=100, step::Int=10, verbose::Bool=false, tol::Real=1e-10)
+    function COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
         maxiter > 0 || throw(ArgumentError("maxiter must be positive"))
         tol > 0 || throw(ArgumentError("tol must be positive"))
-        new(maxiter, step, verbose, tol)
+        new(maxiter, step, tol)
     end
 end
 
@@ -51,6 +55,11 @@ function breslow_ind(x::AbstractVector)
     lastinds[invinds]
 end
 
+"""
+    COXVariables(X::LinearMap, δ::AbstractVector, t::AbstractVector, penalty::Penalty; σ::Real=1/(2*power(X)^2), eval_obj::Bool=false))
+
+Setup variables for Cox regression given the data and penalty configuration.
+"""
 mutable struct COXVariables{T,A}
     m::Int # rows
     n::Int # cols
@@ -90,11 +99,21 @@ mutable struct COXVariables{T,A}
     end
 end
 
+"""
+    reset!(v::COXVariables)
+
+Reset the coefficients to zero
+"""
 function reset!(v::COXVariables{T,A}) where {T,A}
     fill!(v.β, zero(T))
     fill!(v.β_prev, zero(T))
 end
 
+"""
+    π_δ!(out, w, W, δ, breslow)
+
+compute out[i] = δ[j] * w[i]/ W[j] * I(breslow[i] <= breslow[j]).
+"""
 function π_δ!(out, w, W, δ, breslow)
     # fill `out` with zeros beforehand. 
     m = length(δ)
@@ -122,14 +141,18 @@ function cox_grad!(out, w, W, t, q, X, β, δ, bind)
     out
 end
 
+"""
+    cox_grad!(v::COXVariables)
+
+Compute the gradient of Cox partial likelihood based on the current status of v.
+"""
 cox_grad!(v::COXVariables{T,A}) where {T,A} = cox_grad!(v.grad, v.w, v.W, v.t, v.q, v.X, v.β, v.δ, v.breslow)
 
-function update!(v::COXVariables{T,A}) where {T,A}
-    cox_grad!(v)
-    prox!(v.β, v.penalty, v.β .+ v.σ .* v.grad)
-    #v.β .= soft_threshold.(v.β .+ v.σ .* v.grad, v.λ)
-end
+"""
+    get_objective!(v::COXVariables)
 
+Computes the objective function
+"""
 function get_objective!(v::COXVariables{T,A}) where {T,A}
     v.grad .= (v.β .!= 0) # grad used as dummy
     nnz = sum(v.grad)
@@ -147,23 +170,41 @@ function get_objective!(v::COXVariables{T,A}) where {T,A}
     end
 end
 
-function cox_one_iter!(u::COXUpdate, v::COXVariables)
+"""
+    cox_one_iter!(v::COXVariables)
+
+Update one iteration of proximal gradient of the Cox regression
+"""
+function cox_one_iter!(v::COXVariables)
     copyto!(v.β_prev, v.β)
-    update!(v)
+    cox_grad!(v)
+    prox!(v.β, v.penalty, v.β .+ v.σ .* v.grad)
+    #v.β .= soft_threshold.(v.β .+ v.σ .* v.grad, v.λ)
 end
 
+"""
+    loop!(u, iterfun, evalfun, args...)
+
+looping function
+"""
 function loop!(u, iterfun, evalfun, args...)
     converged = false
     t = 0
     while !converged && t < u.maxiter
         t += 1
-        iterfun(u, args...)
+        iterfun(args...)
         if t % u.step == 0
-            converged, monitor = evalfun(u, args...)
+            converged, monitor = evalfun(args...)
             println("$(t)\t$(monitor)")
         end
     end
 end
+
+"""
+    cox!(u::COXUpdate, v::COXVariables)
+
+Run full Cox regression
+"""
 function cox!(u::COXUpdate, v::COXVariables)
     loop!(u, cox_one_iter!, get_objective!, v)
 end
