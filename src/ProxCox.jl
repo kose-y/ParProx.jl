@@ -7,6 +7,7 @@ include("utils.jl")
 include("penalties.jl")
 include("cox.jl")
 
+using Requires
 function __init__()
     @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
         @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
