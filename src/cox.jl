@@ -106,17 +106,13 @@ function π_δ!(out, w, W, δ, breslow)
     out
 end
 
-function get_breslow!(out, cumsum_w, bind)
-    out .= cumsum_w[bind]
-end
-
 function cox_grad!(out, w, W, t, q, X, β, δ, bind)
     T = eltype(β)
     m, n = size(X)
     mul!(w, X, β)
     w .= exp.(w) 
     cumsum!(q, w) # q is used as a dummy variable
-    get_breslow!(W, q, bind)
+    gather!(W, q, bind)
     fill!(q, zero(eltype(q)))
     π_δ!(q, w, W, δ, bind)
     q .= δ .- q
@@ -140,7 +136,7 @@ function get_objective!(X::AbstractArray, u::COXUpdate, v::COXVariables{T,A}) wh
         v.w .= exp.(mul!(v.w, X, v.β))
         cumsum!(v.q, v.w) # q used as dummy
         #v.W .= v.q[v.breslow]
-        get_breslow!(v.W, v.q, v.breslow)
+        gather!(v.W, v.q, v.breslow)
         obj = dot(v.δ, mul!(v.q, X, v.β) .- log.(v.W)) .- value(v.penalty) #v.λ .* sum(abs.(v.β))
         return false, (obj, nnz)
     else
