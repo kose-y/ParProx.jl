@@ -8,7 +8,7 @@ makedocs(;
     ],
     repo="https://github.com/kose-y/ProxCox.jl/blob/{commit}{path}#L{line}",
     sitename="ProxCox.jl",
-    authors="Seyoon",
+    authors="Seyoon Ko",
     assets=String[],
 )
 
