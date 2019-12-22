@@ -33,4 +33,3 @@ function get_breslow!(out::CuArray, cumsum_w::CuArray, bind)
         @cuda threads=256 blocks=numblocks breslow_kernel!(out, cumsum_w, bind)
     end
 end
-
