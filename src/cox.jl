@@ -1,4 +1,4 @@
-using LinearAlgebra
+using LinearAlgebra, LinearMaps
 using Random
 
 function power(x::AbstractMatrix{T}; maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
@@ -54,6 +54,7 @@ end
 mutable struct COXVariables{T,A}
     m::Int # rows
     n::Int # cols
+    X::LinearMap
     penalty::Penalty
     β::A
     β_prev::A
@@ -84,7 +85,7 @@ mutable struct COXVariables{T,A}
         W = A{T}(undef, m)
         q = A{T}(undef, m) 
         
-        new{T,A}(m, n, penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj)
+        new{T,A}(m, n, LinearMap(X), penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj)
     end
 end
 
@@ -120,24 +121,24 @@ function cox_grad!(out, w, W, t, q, X, β, δ, bind)
     out
 end
 
-cox_grad!(v::COXVariables{T,A}, X) where {T,A} = cox_grad!(v.grad, v.w, v.W, v.t, v.q, X, v.β, v.δ, v.breslow)
+cox_grad!(v::COXVariables{T,A}) where {T,A} = cox_grad!(v.grad, v.w, v.W, v.t, v.q, v.X, v.β, v.δ, v.breslow)
 
-function update!(X::AbstractArray, u::COXUpdate, v::COXVariables{T,A}) where {T,A}
-    cox_grad!(v, X)
+function update!(v::COXVariables{T,A}) where {T,A}
+    cox_grad!(v)
     prox!(v.β, v.penalty, v.β .+ v.σ .* v.grad)
     #v.β .= soft_threshold.(v.β .+ v.σ .* v.grad, v.λ)
 end
 
-function get_objective!(X::AbstractArray, u::COXUpdate, v::COXVariables{T,A}) where {T,A}
+function get_objective!(v::COXVariables{T,A}) where {T,A}
     v.grad .= (v.β .!= 0) # grad used as dummy
     nnz = sum(v.grad)
     
     if v.eval_obj
-        v.w .= exp.(mul!(v.w, X, v.β))
+        v.w .= exp.(mul!(v.w, v.X, v.β))
         cumsum!(v.q, v.w) # q used as dummy
         #v.W .= v.q[v.breslow]
         gather!(v.W, v.q, v.breslow)
-        obj = dot(v.δ, mul!(v.q, X, v.β) .- log.(v.W)) .- value(v.penalty) #v.λ .* sum(abs.(v.β))
+        obj = dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W)) .- value(v.penalty) #v.λ .* sum(abs.(v.β))
         return false, (obj, nnz)
     else
         v.grad .= abs.(v.β_prev .- v.β)
@@ -145,23 +146,23 @@ function get_objective!(X::AbstractArray, u::COXUpdate, v::COXVariables{T,A}) wh
     end
 end
 
-function cox_one_iter!(X::AbstractArray, u::COXUpdate, v::COXVariables)
+function cox_one_iter!(u::COXUpdate, v::COXVariables)
     copyto!(v.β_prev, v.β)
-    update!(X, u, v)
+    update!(v)
 end
 
-function loop!(X::AbstractArray, u, iterfun, evalfun, args...)
+function loop!(u, iterfun, evalfun, args...)
     converged = false
     t = 0
     while !converged && t < u.maxiter
         t += 1
-        iterfun(X, u, args...)
+        iterfun(u, args...)
         if t % u.step == 0
-            converged, monitor = evalfun(X, u, args...)
+            converged, monitor = evalfun(u, args...)
             println("$(t)\t$(monitor)")
         end
     end
 end
-function cox!(X::AbstractArray, u::COXUpdate, v::COXVariables)
-    loop!(X, u, cox_one_iter!, get_objective!, v)
+function cox!(u::COXUpdate, v::COXVariables)
+    loop!(u, cox_one_iter!, get_objective!, v)
 end
