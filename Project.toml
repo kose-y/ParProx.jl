@@ -3,6 +3,13 @@ uuid = "440725ae-e20d-4dd2-817a-b87798dc3ed7"
 authors = ["Seyoon"]
 version = "0.1.0"
 
+[deps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LinearMaps = "7a12625a-238d-50fd-b39a-03d52299707e"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
 [compat]
 julia = "1.2"
 

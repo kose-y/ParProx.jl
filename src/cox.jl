@@ -1,7 +1,7 @@
 using LinearAlgebra, LinearMaps
 using Random
 
-function power(x::AbstractMatrix{T}; maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
+function power(x::LinearMap{T}; maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
     s_prev = -Inf
     n, p = size(x)
     v_cpu = Array{T}(undef, p)
@@ -67,7 +67,7 @@ mutable struct COXVariables{T,A}
     W::A
     q::A # (1 - π)δ
     eval_obj::Bool
-    function COXVariables(X::AbstractArray{T,2}, δ::AbstractVector, t::AbstractVector, penalty::Penalty;
+    function COXVariables(X::LinearMap{T,2}, δ::AbstractVector, t::AbstractVector, penalty::Penalty;
             σ::Real=1/(2*power(X)^2), eval_obj::Bool=false) where {T}
         m, n = size(X)
         A = typeof(X).name.wrapper
