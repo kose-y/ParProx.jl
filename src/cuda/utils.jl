@@ -1,3 +1,4 @@
+using .CUDAnative, .CuArrays
 function gather_kernel!(out, vec, ind)
     idx_x = (blockIdx().x-1) * blockDim().x + threadIdx().x
     stride_x = blockDim().x * gridDim().x

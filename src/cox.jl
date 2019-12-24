@@ -1,14 +1,13 @@
 using LinearAlgebra, LinearMaps
-using Random
+using Random, Adapt
 
-function power(x::LinearMap{T}; maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
+function power(x::LinearMap{T}; ArrayType=Array, maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
     s_prev = -Inf
     n, p = size(x)
     v_cpu = Array{T}(undef, p)
     randn!(v_cpu)
-    v = similar(x, T, p)
-    copyto!(v, v_cpu)
-    xv = similar(x, T, n)
+    v = adapt(ArrayType{T}, v_cpu)
+    xv = similar(v, T, n)
     mul!(xv, x, v)
     s = 0.0
     for i = 1:maxiter
@@ -76,26 +75,26 @@ mutable struct COXVariables{T,A}
     W::A
     q::A # (1 - π)δ
     eval_obj::Bool
-    function COXVariables(X::LinearMap, δ::AbstractVector, t::AbstractVector, penalty::Penalty;
-            σ::Real=1/(2*power(X)^2), eval_obj::Bool=false)
-        T = eltype(X)
+    function COXVariables{T,AT}(X::LinearMap, δ::AbstractVector, 
+                                t::AbstractVector, penalty::Penalty; 
+                                σ::Real=1/(2*power(X; ArrayType=AT)^2), eval_obj::Bool=false
+                               ) where {T <: Real, AT <: AbstractArray}
         m, n = size(X)
-        A = typeof(X).name.wrapper
-        β = A{T}(undef, n)
-        β_prev = A{T}(undef, n)
+        β = AT{T}(undef, n)
+        β_prev = AT{T}(undef, n)
         fill!(β, zero(T))
         fill!(β_prev, zero(T))
         
-        δ = convert(A{T}, δ)
+        δ = convert(AT{T}, δ)
         
-        breslow = convert(A{Int}, breslow_ind(convert(Array, t)))
+        breslow = convert(AT{Int}, breslow_ind(convert(Array, t)))
         
-        grad  = A{T}(undef, n)
-        w = A{T}(undef, m)
-        W = A{T}(undef, m)
-        q = A{T}(undef, m) 
+        grad  = AT{T}(undef, n)
+        w = AT{T}(undef, m)
+        W = AT{T}(undef, m)
+        q = AT{T}(undef, m) 
         
-        new{T,A}(m, n, LinearMap(X), penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj)
+        new{T,AT}(m, n, LinearMap(X), penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj)
     end
 end
 
@@ -162,7 +161,7 @@ function get_objective!(v::COXVariables{T,A}) where {T,A}
         cumsum!(v.q, v.w) # q used as dummy
         #v.W .= v.q[v.breslow]
         gather!(v.W, v.q, v.breslow)
-        obj = dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W)) .- value(v.penalty) #v.λ .* sum(abs.(v.β))
+        obj = dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W)) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
         return false, (obj, nnz)
     else
         v.grad .= abs.(v.β_prev .- v.β)

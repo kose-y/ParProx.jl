@@ -77,7 +77,7 @@ function prox!(y::AbstractArray{T}, f::IndGroupBallL2{T,A}, x::AbstractArray{T},
     y .= x .^ 2
     mul!(f.tmp_g, transpose(f.grpmat), y)
     f.tmp_g .= sqrt.(f.tmp_g) # groupwise norms
-    f.tmp_g .= f.max_norms ./ (max(f.max_norms, f.tmp_g))
+    f.tmp_g .= f.max_norms ./ (max.(f.max_norms, f.tmp_g))
     gather!(f.tmp_p, f.tmp_g, f.gidx)
     y .= x .* f.tmp_p
     y
@@ -87,9 +87,9 @@ function prox!(y::AbstractArray{T}, f::GroupNormL2{T,A}, x::AbstractArray{T}, γ
     y .= x .^ 2
     mul!(f.tmp_g, transpose(f.grpmat), y)
     f.tmp_g .= sqrt.(f.tmp_g) # groupwise norms
-    f.tmp_g .= γ * f.max_norms ./ (max(γ * f.max_norms, f.tmp_g))
+    f.tmp_g .= (γ .* f.max_norms) ./ (max.(γ .* f.max_norms, f.tmp_g))
     gather!(f.tmp_p, f.tmp_g, f.gidx)
-    y .= x .- x .* f.tmp_p
+    y .= (1 .- f.tmp_p) .* x
     y
 end
 
