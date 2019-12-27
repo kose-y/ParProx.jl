@@ -16,13 +16,24 @@ function NormL1(λ::T; ArrayType=Array) where T<:Real
     return NormL1{T, ArrayType}(λ)
 end
 
-function prox!(y::AbstractArray{T}, f::NormL1{T,A}, x::AbstractArray{T}, γ::T=one(T)) where {T <: Real, A<:AbstractArray}
-    y .= soft_threshold.(x, γ .* f.λ)
+"""
+    prox!(y, f, x, γ; unpen)
+
+update `y` with the proximity operator value `prox_{γf}(x)`, with last `unpen` variables unpenalized.
+"""
+function prox!(y::AbstractArray{T}, f::NormL1{T,A}, x::AbstractArray{T}, γ::T=one(T); unpen::Int=0) where {T <: Real, A<:AbstractArray}
+    y[1:end-unpen] .= soft_threshold.(@view(x[1:end-unpen]), γ .* f.λ)
+    y[end-unpen+1:end] .= @view(x[end-unpen+1:end])
     y
 end
 
-function value(f::NormL1{T,A}, x::AbstractArray{T}) where {T <: Real, A <: AbstractArray}
-    return sum(abs.(x))
+"""
+    value(f, x; unpen)
+
+value of f(x), with last `unpen` variables unpenalized.
+"""
+function value(f::NormL1{T,A}, x::AbstractArray{T}; unpen::Int=0) where {T <: Real, A <: AbstractArray}
+    return f.λ * sum(abs.(@view(x[1:end-unpen])))
 end
 
 function _get_grouplasso_args(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: Integer}
@@ -83,13 +94,14 @@ function prox!(y::AbstractArray{T}, f::IndGroupBallL2{T,A}, x::AbstractArray{T},
     y
 end
 
-function prox!(y::AbstractArray{T}, f::GroupNormL2{T,A}, x::AbstractArray{T}, γ::T=one(T)) where {T <: Real, A<:AbstractArray}
-    y .= x .^ 2
-    mul!(f.tmp_g, transpose(f.grpmat), y)
+function prox!(y::AbstractArray{T}, f::GroupNormL2{T,A}, x::AbstractArray{T}, γ::T=one(T); unpen::Int=length(x) - f.p) where {T <: Real, A<:AbstractArray}
+    y[1:end-unpen] .= @view(x[1:end-unpen]) .^ 2
+    mul!(f.tmp_g, transpose(f.grpmat), @view(y[1:end-unpen]))
     f.tmp_g .= sqrt.(f.tmp_g) # groupwise norms
     f.tmp_g .= (γ .* f.max_norms) ./ (max.(γ .* f.max_norms, f.tmp_g))
     gather!(f.tmp_p, f.tmp_g, f.gidx)
-    y .= (1 .- f.tmp_p) .* x
+    y[1:end-unpen] .= (1 .- f.tmp_p) .* @view(x[1:end-unpen])
+    y[end-unpen+1:end] .= x[end-unpen+1:end]
     y
 end
 
@@ -100,8 +112,8 @@ function value(f::IndGroupBallL2{T,A}, x::AbstractArray{T}) where {T <: Real, A 
     return sum(sqrt.(f.sizes) .* f.tmp_g) - f.λ > eps(T) * f.λ ? T(Inf) : zero(T)
 end
 
-function value(f::GroupNormL2{T,A}, x::AbstractArray{T}) where {T <: Real, A <: AbstractArray}
-    f.tmp_p .= x .^ 2
+function value(f::GroupNormL2{T,A}, x::AbstractArray{T}; unpen::Int=length(x) - f.p) where {T <: Real, A <: AbstractArray}
+    f.tmp_p .= @view(x[1:end-unpen]) .^ 2
     mul!(f.tmp_g, transpose(f.grpmat), f.tmp_p)
     f.tmp_g .= sqrt.(f.tmp_g)
     return f.λ .* sum(sqrt.(f.sizes) .* f.tmp_g)
