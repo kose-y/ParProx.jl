@@ -10,10 +10,11 @@ end
 
 struct NormL1{T<:Real, ArrayType<:AbstractArray} <: Penalty
     λ::T
+    unpen::Int
 end
 
-function NormL1(λ::T; ArrayType=Array) where T<:Real
-    return NormL1{T, ArrayType}(λ)
+function NormL1(λ::T; ArrayType=Array, unpen::Int=0) where T<:Real
+    return NormL1{T, ArrayType}(λ, unpen)
 end
 
 """
@@ -21,7 +22,7 @@ end
 
 update `y` with the proximity operator value `prox_{γf}(x)`, with last `unpen` variables unpenalized.
 """
-function prox!(y::AbstractArray{T}, f::NormL1{T,A}, x::AbstractArray{T}, γ::T=one(T); unpen::Int=0) where {T <: Real, A<:AbstractArray}
+function prox!(y::AbstractArray{T}, f::NormL1{T,A}, x::AbstractArray{T}, γ::T=one(T); unpen::Int=f.unpen) where {T <: Real, A<:AbstractArray}
     y[1:end-unpen] .= soft_threshold.(@view(x[1:end-unpen]), γ .* f.λ)
     y[end-unpen+1:end] .= @view(x[end-unpen+1:end])
     y
@@ -32,7 +33,7 @@ end
 
 value of f(x), with last `unpen` variables unpenalized.
 """
-function value(f::NormL1{T,A}, x::AbstractArray{T}; unpen::Int=0) where {T <: Real, A <: AbstractArray}
+function value(f::NormL1{T,A}, x::AbstractArray{T}; unpen::Int=f.unpen) where {T <: Real, A <: AbstractArray}
     return f.λ * sum(abs.(@view(x[1:end-unpen])))
 end
 

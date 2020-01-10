@@ -1,17 +1,41 @@
 using LinearAlgebra, LinearMaps
 using Random, Adapt
 
+function power(x::LinearMap{T}; ArrayType=Array, maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
+    s_prev = -Inf
+    n, p = size(x)
+    v_cpu = Array{T}(undef, p)
+    randn!(v_cpu)
+    v = adapt(ArrayType{T}, v_cpu)
+    xv = similar(v, T, n)
+    mul!(xv, x, v)
+    s = 0.0
+    for i = 1:maxiter
+        mul!(v, transpose(x), xv) #v = transpose(x) * xv
+        v ./= norm(v)
+        mul!(xv, x, v)
+        s = norm(xv)
+        if abs((s_prev - s)/s) < eps
+            break
+        end
+        s_prev = s
+        if mod(i, 100) == 0
+            println("power iteration: $i $s")
+        end
+    end
+    s
+end
 
 """
     COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
 
 Stopping and evaluation rule for Cox regression
 """
-mutable struct COXUpdate <: OptimConfig
+mutable struct COXUpdate
     maxiter::Int
     step::Int
     tol::Real
-    function OptimConfig(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
+    function COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
         maxiter > 0 || throw(ArgumentError("maxiter must be positive"))
         tol > 0 || throw(ArgumentError("tol must be positive"))
         new(maxiter, step, tol)
@@ -157,6 +181,23 @@ function cox_one_iter!(v::COXVariables)
     #v.β .= soft_threshold.(v.β .+ v.σ .* v.grad, v.λ)
 end
 
+"""
+    loop!(u, iterfun, evalfun, args...)
+
+looping function
+"""
+function loop!(u, iterfun, evalfun, args...)
+    converged = false
+    t = 0
+    while !converged && t < u.maxiter
+        t += 1
+        iterfun(args...)
+        if t % u.step == 0
+            converged, monitor = evalfun(args...)
+            println("$(t)\t$(monitor)")
+        end
+    end
+end
 
 """
     cox!(u::COXUpdate, v::COXVariables)

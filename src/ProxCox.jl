@@ -3,6 +3,8 @@ module ProxCox
 export Penalty, NormL1, GroupNormL2, value, prox!
 export power, CoxUpdate, CoxVariables, reset!, cox_grad!, get_objective!, cox!
 
+using LinearMaps
+
 include("utils.jl")
 include("penalties.jl")
 include("cox.jl")
