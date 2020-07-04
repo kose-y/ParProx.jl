@@ -1,14 +1,20 @@
 module ProxCox
 
+import Base: length
+
 export Penalty, NormL1, GroupNormL2, value, prox!
-export power, CoxUpdate, CoxVariables, reset!, cox_grad!, get_objective!, cox!
+export power, CoxUpdate, CoxVariables, reset!,  get_objective!, fit!
 
 using LinearMaps
+
+const MapOrMatrix{T} = Union{LinearMap{T},AbstractMatrix{T}}
 
 include("utils.jl")
 include("penalties.jl")
 include("cox.jl")
-
+include("logistic.jl")
+include("softmax.jl")
+include("cv.jl")
 using Requires
 function __init__()
     @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin

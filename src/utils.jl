@@ -8,11 +8,11 @@ function gather!(out, vec, ind)
 end
 
 """
-    power(x::LinearMap{T})
+    power(x::MapOrMatrix{T})
 
 Power iteration to compute induced operator norm of the `Matrix` (or `LinearMap`) `x`.
 """
-function power(x::LinearMap{T}; ArrayType=Array, maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
+function power(x::MapOrMatrix{T}; ArrayType=Array, maxiter::Int=1000, eps::AbstractFloat=1e-6) where T <: AbstractFloat
     s_prev = -Inf
     n, p = size(x)
     v_cpu = Array{T}(undef, p)
@@ -50,9 +50,12 @@ function loop!(u, iterfun, evalfun, args...)
         iterfun(args...)
         if t % u.step == 0
             converged, monitor = evalfun(args...)
-            println("$(t)\t$(monitor)")
+            if u.verbose
+                println("$(t)\t$(monitor)")
+            end
         end
     end
 end
 
 abstract type OptimConfig end
+abstract type OptimVariables end

@@ -11,7 +11,7 @@ mutable struct COXUpdate <: OptimConfig
     maxiter::Int
     step::Int
     tol::Real
-    function OptimConfig(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
+    function COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
         maxiter > 0 || throw(ArgumentError("maxiter must be positive"))
         tol > 0 || throw(ArgumentError("tol must be positive"))
         new(maxiter, step, tol)
@@ -31,14 +31,14 @@ function breslow_ind(x::AbstractVector)
 end
 
 """
-    COXVariables(X::LinearMap, δ::AbstractVector, t::AbstractVector, penalty::Penalty; σ::Real=1/(2*power(X)^2), eval_obj::Bool=false))
+    COXVariables(X::MapOrMatrix, δ::AbstractVector, t::AbstractVector, penalty::Penalty; σ::Real=1/(2*power(X)^2), eval_obj::Bool=false))
 
 Setup variables for Cox regression given the data and penalty configuration.
 """
 mutable struct COXVariables{T,A}
     m::Int # rows
     n::Int # cols
-    X::LinearMap
+    X::MapOrMatrix
     penalty::Penalty
     β::A
     β_prev::A
@@ -51,7 +51,7 @@ mutable struct COXVariables{T,A}
     W::A
     q::A # (1 - π)δ
     eval_obj::Bool
-    function COXVariables{T,AT}(X::LinearMap, δ::AbstractVector, 
+    function COXVariables{T,AT}(X::MapOrMatrix, δ::AbstractVector, 
                                 t::AbstractVector, penalty::Penalty; 
                                 σ::Real=1/(2*power(X; ArrayType=AT)^2), eval_obj::Bool=false
                                ) where {T <: Real, AT <: AbstractArray}
@@ -117,11 +117,11 @@ function cox_grad!(out, w, W, t, q, X, β, δ, bind)
 end
 
 """
-    cox_grad!(v::COXVariables)
+    grad!(v::COXVariables)
 
 Compute the gradient of Cox partial likelihood based on the current status of v.
 """
-cox_grad!(v::COXVariables{T,A}) where {T,A} = cox_grad!(v.grad, v.w, v.W, v.t, v.q, v.X, v.β, v.δ, v.breslow)
+grad!(v::COXVariables{T,A}) where {T,A} = cox_grad!(v.grad, v.w, v.W, v.t, v.q, v.X, v.β, v.δ, v.breslow)
 
 """
     get_objective!(v::COXVariables)
@@ -150,19 +150,19 @@ end
 
 Update one iteration of proximal gradient of the Cox regression
 """
-function cox_one_iter!(v::COXVariables)
+function one_iter!(v::COXVariables)
     copyto!(v.β_prev, v.β)
-    cox_grad!(v)
+    grad!(v)
     prox!(v.β, v.penalty, v.β .+ v.σ .* v.grad)
     #v.β .= soft_threshold.(v.β .+ v.σ .* v.grad, v.λ)
 end
 
 
 """
-    cox!(u::COXUpdate, v::COXVariables)
+    fit!(u::COXUpdate, v::COXVariables)
 
 Run full Cox regression
 """
-function cox!(u::COXUpdate, v::COXVariables)
-    loop!(u, cox_one_iter!, get_objective!, v)
+function fit!(u::COXUpdate, v::COXVariables)
+    loop!(u, one_iter!, get_objective!, v)
 end

@@ -55,27 +55,57 @@ function _get_grouplasso_args(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: In
     return λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p,tmp_g
 end
 
+function _get_grouplasso_args_rowwise(λ::T, idx::Vector{Ti}, ncols::Int) where {T <: Real, Ti <: Integer}
+    # grpmat stands, gidx stands, sizes multiplied by ncols, p multiplied by ncols (?), ngrp stands, max_norms multiplied by sqrt(ncols), 
+    # tmp_p becomes a matrix, tmp_g stands. 
+end
+
+function _get_grouplasso_args_sepcols(λ::T, idx::Vector{Ti}, ncols::Int) where {T <: Real, Ti <: Integer}
+    # grpmat repeated horizontally ncols times, offsetting needed for gidx, sizes repeated ncols times, p multiplied by ncols (?), 
+    # ngrp multiplied by ncols, max_norms repeated, tmp_p becomes a matrix (or a longer vector), tmp_g becomes a matrix (or longer vector)
+end
+
 for Pen in (:GroupNormL2, :IndGroupBallL2) 
     @eval begin
         struct ($Pen){T<:Real, ArrayType<:AbstractArray} <: Penalty
             λ::T
-            grpmat::AbstractSparseMatrix
-            gidx::AbstractVector{<:Integer}
-            change_idxs::AbstractVector{<:Integer}
-            sizes::AbstractVector{T}
+            grpmat::LinearMap
+            gidx::AbstractArray{<:Integer}
+            change_idxs::AbstractArray{<:Integer}
+            sizes::AbstractArray{T}
             p::Integer
             ngrps::Integer
             max_norms::AbstractVector{T}
-            tmp_p::AbstractVector{T}
-            tmp_g::AbstractVector{T}
+            tmp_p::AbstractArray{T}
+            tmp_g::AbstractArray{T}
+            ncols::Int
+            rowwise::Bool
         end
         function ($Pen)(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: Integer}
             ArrayType=Array
             λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g = _get_grouplasso_args(λ, idx)
-            return ($Pen){T,ArrayType}(λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g)
+            return ($Pen){T,ArrayType}(λ, LinearMap(grpmat), gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g, 1, false)
+        end
+
+        function ($Pen)(λ::T, idx::Vector{Ti}, ncols::Int, rowwise::Bool) where {T <: Real, Ti <: Integer}
+            ArrayType=Array
+            #λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g = _get_grouplasso_args(λ, idx)
+            #some special setups depending on the value of rowwise
+            if rowwise
+                #TODO
+            
+            
+            else
+                #TODO
+            
+            
+            end
         end
     end
 end
+
+
+
 
 for (Pen1, Pen2) in [(:GroupNormL2, :IndGroupBallL2), (:IndGroupBallL2, :GroupNormL2)]
     @eval begin
@@ -95,27 +125,63 @@ function prox!(y::AbstractArray{T}, f::IndGroupBallL2{T,A}, x::AbstractArray{T},
     y
 end
 
-function prox!(y::AbstractArray{T}, f::GroupNormL2{T,A}, x::AbstractArray{T}, γ::T=one(T); unpen::Int=length(x) - f.p) where {T <: Real, A<:AbstractArray}
+function prox!(y::AbstractArray{T}, f::GroupNormL2{T,A}, x::AbstractArray{T}, γ::T=one(T); unpen::Int=length(x) - f.p) where {T <: Real, A <: AbstractArray}
     y[1:end-unpen] .= @view(x[1:end-unpen]) .^ 2
     mul!(f.tmp_g, transpose(f.grpmat), @view(y[1:end-unpen]))
     f.tmp_g .= sqrt.(f.tmp_g) # groupwise norms
-    f.tmp_g .= (γ .* f.max_norms) ./ (max.(γ .* f.max_norms, f.tmp_g))
+    f.tmp_g .= (γ .* f.max_norms) ./ (max.(γ .* f.max_norms, f.tmp_g)) # multiplication factors
     gather!(f.tmp_p, f.tmp_g, f.gidx)
     y[1:end-unpen] .= (1 .- f.tmp_p) .* @view(x[1:end-unpen])
     y[end-unpen+1:end] .= x[end-unpen+1:end]
     y
 end
 
-function value(f::IndGroupBallL2{T,A}, x::AbstractArray{T}) where {T <: Real, A <: AbstractArray}
+
+#=
+function prox!(y::AbstractMatrix{T}, f::GroupNormL2{T,A}, x::AbstractMatrix{T}, γ::T=one(T); unpen::Int=size(x, 1) - f.p, rowwise=false, 
+               tmp_g::AbstractMatrix{T} = rowwise ? similar(x, f.ngrps, size(x, 2)) : similar(x, f.ngrps * size(x, 2))) where {T <: Real, A <: AbstractArray}
+    y[1:end-unpen, :] .= @view(x[1:end-unpen, :]) .^ 2 
+
+    if rowwise
+        grpmat = kron(ones(1, ), f.grpmat)
+    else
+        max_norms = repeat(f.max_norms, size(x, 2))
+        gidx = repeat(f.gidx, ) # TODO: offseting idxs
+        grpmat = kron(ones(size(x, 2), 1), f.grpmat)
+        mul!(tmp_g, transpose(grpmat), reshape(@view(y[1:end-unpen, :], :)))
+        tmp_g .= sqrt.(tmp_g)
+        tmp_g .= (γ .* max_norms) ./ (max.(γ .* max_norms, tmp_g))
+        gather!()
+
+    end
+
+    y[1:end-unpen, :] .= (1 .- tmp_p) .* @view(x[1:end-unpen, :])
+
+    y[end-unpen+1:end, :] .= x[end-unpen+1:end, :]
+end
+=#
+
+function value(f::IndGroupBallL2{T,A}, x::AbstractVector{T}) where {T <: Real, A <: AbstractArray}
     f.tmp_p .= x .^ 2
     mul!(f.tmp_g, transpose(f.grpmat), f.tmp_p)
     f.tmp_g .= sqrt.(f.tmp_g)
     return sum(sqrt.(f.sizes) .* f.tmp_g) - f.λ > eps(T) * f.λ ? T(Inf) : zero(T)
 end
 
-function value(f::GroupNormL2{T,A}, x::AbstractArray{T}; unpen::Int=length(x) - f.p) where {T <: Real, A <: AbstractArray}
+function value(f::GroupNormL2{T,A}, x::AbstractVector{T}; unpen::Int=length(x) - f.p) where {T <: Real, A <: AbstractArray}
     f.tmp_p .= @view(x[1:end-unpen]) .^ 2
     mul!(f.tmp_g, transpose(f.grpmat), f.tmp_p)
     f.tmp_g .= sqrt.(f.tmp_g)
     return f.λ .* sum(sqrt.(f.sizes) .* f.tmp_g)
 end
+
+#=
+function value(f::GroupNormL2{T,A}, x::AbstractMatrix{T}; unpen::Int=size(x, 1) - f.p, rowwise=false, 
+               tmp_g::AbstractMatrix{T}=similar(x, f.ngrps, size(x,2)), tmp_p::AbstractMatrix{T}=similar(x, size(x,1)-unpen, size(x, 2))) where {T <: Real, A <: AbstractArray}
+
+    tmp_p .= @view(x[1:end-unpen, :]) .^ 2
+    #TODO
+    tmp_g .= sqrt.(tmp_g)
+    #TODO
+end
+=#
