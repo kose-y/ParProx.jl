@@ -11,7 +11,7 @@ for Pen in (:GroupNormL2, :IndGroupBallL2)
             max_norms = adapt(CuArray{T}, max_norms)
             tmp_p = adapt(CuArray{T}, tmp_p)
             tmp_g = adapt(CuArray{T}, tmp_g)
-            return ($Pen){T, CuArray}(λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g)
+            return ($Pen){T, CuArray}(λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g, 1, false)
         end
     end
 end
