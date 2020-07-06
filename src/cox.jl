@@ -11,10 +11,12 @@ mutable struct COXUpdate <: OptimConfig
     maxiter::Int
     step::Int
     tol::Real
-    function COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
+    prev::Real
+    verbose::Bool
+    function COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10, verbose::Bool=false)
         maxiter > 0 || throw(ArgumentError("maxiter must be positive"))
         tol > 0 || throw(ArgumentError("tol must be positive"))
-        new(maxiter, step, tol)
+        new(maxiter, step, tol, -Inf, verbose)
     end
 end
 
@@ -138,7 +140,10 @@ function get_objective!(v::COXVariables{T,A}) where {T,A}
         #v.W .= v.q[v.breslow]
         gather!(v.W, v.q, v.breslow)
         obj = dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W)) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
-        return false, (obj, nnz)
+        reldiff = (abs(obj - u.prev))/(obj + 1.0)
+        converged =  reldiff < tol
+        u.prev = obj
+        return covnerged, (obj, reldiff, nnz)
     else
         v.grad .= abs.(v.β_prev .- v.β)
         return false, (maximum(v.grad), nnz)
