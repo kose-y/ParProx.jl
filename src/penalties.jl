@@ -69,7 +69,7 @@ for Pen in (:GroupNormL2, :IndGroupBallL2)
     @eval begin
         struct ($Pen){T<:Real, ArrayType<:AbstractArray} <: Penalty
             λ::T
-            grpmat::LinearMap
+            grpmat::MapOrMatrix
             gidx::AbstractArray{<:Integer}
             change_idxs::AbstractArray{<:Integer}
             sizes::AbstractArray{T}
@@ -84,7 +84,7 @@ for Pen in (:GroupNormL2, :IndGroupBallL2)
         function ($Pen)(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: Integer}
             ArrayType=Array
             λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g = _get_grouplasso_args(λ, idx)
-            return ($Pen){T,ArrayType}(λ, LinearMap(grpmat), gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g, 1, false)
+            return ($Pen){T,ArrayType}(λ, grpmat, gidx, change_idxs, sizes, p, ngrps, max_norms, tmp_p, tmp_g, 1, false)
         end
 
         function ($Pen)(λ::T, idx::Vector{Ti}, ncols::Int, rowwise::Bool) where {T <: Real, Ti <: Integer}
