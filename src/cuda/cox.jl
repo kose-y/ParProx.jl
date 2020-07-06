@@ -1,4 +1,4 @@
-using .CuArrays, .CUDAnative
+using .CUDA
 function π_δ_kernel!(out, w, W, δ, breslow)
     # fill `out` with zeros beforehand.
     idx_x = (blockIdx().x-1) * blockDim().x + threadIdx().x
@@ -14,7 +14,7 @@ end
 
 function π_δ!(out::CuArray, w::CuArray, W::CuArray, δ::CuArray, breslow)
     numblocks = ceil(Int, length(w)/256)
-    CuArrays.@sync begin
+    CUDA.@sync begin
         @cuda threads=256 blocks=numblocks π_δ_kernel!(out, w, W, δ, breslow)
     end
 end

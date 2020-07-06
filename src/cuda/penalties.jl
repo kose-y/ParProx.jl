@@ -1,4 +1,4 @@
-using .CuArrays, .CUDAnative, Adapt
+using .CUDA, Adapt
 for Pen in (:GroupNormL2, :IndGroupBallL2) 
     @eval begin
         function ($Pen){T, CuArray}(λ::Real, idx::Vector{Ti}; gidx=false) where {T <: Real, Ti <: Integer}
