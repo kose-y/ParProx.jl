@@ -130,7 +130,7 @@ grad!(v::COXVariables{T,A}) where {T,A} = cox_grad!(v.grad, v.w, v.W, v.t, v.q, 
 
 Computes the objective function
 """
-function get_objective!(v::COXVariables{T,A}) where {T,A}
+function get_objective!(u::COXUpdate, v::COXVariables{T,A}) where {T,A}
     v.grad .= (v.β .!= 0) # grad used as dummy
     nnz = sum(v.grad)
     
@@ -141,7 +141,7 @@ function get_objective!(v::COXVariables{T,A}) where {T,A}
         gather!(v.W, v.q, v.breslow)
         obj = dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W)) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
         reldiff = (abs(obj - v.obj_prev))/(obj + 1.0)
-        converged =  reldiff < tol
+        converged =  reldiff < u.tol
         v.obj_prev = obj
         return covnerged, (obj, reldiff, nnz)
     else

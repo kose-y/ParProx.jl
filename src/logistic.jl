@@ -90,7 +90,7 @@ grad!(v::LogisticVariables{T,A}) where {T,A} = logistic_grad!(v.grad, v.β, v.X,
 
 Computes the objective function
 """
-function get_objective!(v::LogisticVariables{T,A}) where {T,A}
+function get_objective!(u::LogisticUpdate, v::LogisticVariables{T,A}) where {T,A}
     v.grad .= (v.β .!= 0) # grad used as dummy
     nnz = sum(v.grad)
 

@@ -49,7 +49,7 @@ function loop!(u, iterfun, evalfun, args...)
         t += 1
         iterfun(args...)
         if t % u.step == 0
-            converged, monitor = evalfun(args...)
+            converged, monitor = evalfun(u, args...)
             if u.verbose
                 println("$(t)\t$(monitor)")
             end
