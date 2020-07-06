@@ -11,12 +11,11 @@ mutable struct COXUpdate <: OptimConfig
     maxiter::Int
     step::Int
     tol::Real
-    prev::Real
     verbose::Bool
     function COXUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10, verbose::Bool=false)
         maxiter > 0 || throw(ArgumentError("maxiter must be positive"))
         tol > 0 || throw(ArgumentError("tol must be positive"))
-        new(maxiter, step, tol, -Inf, verbose)
+        new(maxiter, step, tol, verbose)
     end
 end
 
@@ -53,6 +52,7 @@ mutable struct COXVariables{T,A}
     W::A
     q::A # (1 - π)δ
     eval_obj::Bool
+    obj_prev::Real
     function COXVariables{T,AT}(X::MapOrMatrix, δ::AbstractVector, 
                                 t::AbstractVector, penalty::Penalty; 
                                 σ::Real=1/(2*power(X; ArrayType=AT)^2), eval_obj::Bool=false
@@ -72,7 +72,7 @@ mutable struct COXVariables{T,A}
         W = AT{T}(undef, m)
         q = AT{T}(undef, m) 
         
-        new{T,AT}(m, n, LinearMap(X), penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj)
+        new{T,AT}(m, n, LinearMap(X), penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj, -Inf)
     end
 end
 
@@ -140,9 +140,9 @@ function get_objective!(v::COXVariables{T,A}) where {T,A}
         #v.W .= v.q[v.breslow]
         gather!(v.W, v.q, v.breslow)
         obj = dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W)) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
-        reldiff = (abs(obj - u.prev))/(obj + 1.0)
+        reldiff = (abs(obj - v.obj_prev))/(obj + 1.0)
         converged =  reldiff < tol
-        u.prev = obj
+        v.obj_prev = obj
         return covnerged, (obj, reldiff, nnz)
     else
         v.grad .= abs.(v.β_prev .- v.β)
