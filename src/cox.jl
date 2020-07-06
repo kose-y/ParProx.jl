@@ -143,7 +143,7 @@ function get_objective!(u::COXUpdate, v::COXVariables{T,A}) where {T,A}
         reldiff = (abs(obj - v.obj_prev))/(obj + 1.0)
         converged =  reldiff < u.tol
         v.obj_prev = obj
-        return covnerged, (obj, reldiff, nnz)
+        return converged, (obj, reldiff, nnz)
     else
         v.grad .= abs.(v.β_prev .- v.β)
         return false, (maximum(v.grad), nnz)
