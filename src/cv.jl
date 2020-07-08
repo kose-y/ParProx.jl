@@ -88,11 +88,35 @@ function cross_validate(estfun::Function, evalfun::Function, n::Int, gen)
 
     scores = Float64[]
     for (i, train_inds) in enumerate(gen)
-        println(i, train_inds)
+        #println(i, train_inds)
         test_inds = setdiff(1:n, train_inds)
         model = estfun(train_inds)
         score = evalfun(model, test_inds)
         push!(scores, score)
     end
     return scores
+end
+
+function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penalties::Vector{P}, k::Int; T=Float64, A=Array, mapper=Base.identity) where P <: Penalty 
+    gen = StratifiedKfold(δ, k)
+    n = size(X, 1)
+    scores = Array{Float64}(undef, length(penalties), k)
+    for (j, train_inds) in enumerate(gen)
+        test_inds = setdiff(1:n, train_inds)
+        X_train = mapper(X[train_inds, :])
+        X_test = mapper(X[test_inds, :])
+        δ_train = δ[train_inds]
+        δ_test = δ[test_inds]
+        t_train = t[train_inds]
+        t_test = t[test_inds]
+        p = penalties[1]
+        V = ProxCox.COXVariables{T, A}(adapt(A{T}, X_train), adapt(A{T}, δ_train), adapt(A{T}, t_train), p; eval_obj=true)
+        for (i, p) in enumerate(penalties)
+            V.penalty = p
+            V.obj_prev = -Inf
+            @time fit!(u, V)
+            scores[i, j] = cindex(t_test, δ_test, X_test, adapt(Array{T}, V.β))
+        end
+    end
+    scores
 end

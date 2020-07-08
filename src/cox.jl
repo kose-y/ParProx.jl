@@ -171,3 +171,36 @@ Run full Cox regression
 function fit!(u::COXUpdate, v::COXVariables)
     loop!(u, one_iter!, get_objective!, v)
 end
+
+"""
+    cindex(v::COXVariables)
+    cindex(t, δ, X, β)
+
+Compute c-index
+"""
+
+function cindex(t, δ, X, β)
+    t = adapt(Array{eltype(t)}, t)
+    δ = adapt(Array{eltype(δ)}, δ)
+    Xβ = adapt(Array{eltype(β)}, X * β)
+    numerator = 0
+    denominator = 0
+
+    for i in 1:length(t)
+        for j in (i+1):length(t)
+            t[i] == t[j] && continue
+            δ[j] == 0 && continue
+            denominator += 1
+            if Xβ[i] < Xβ[j]  
+                numerator += 1
+            end 
+        end
+    end
+
+    numerator / denominator
+end
+
+function cindex(v::COXVariables)
+    cindex(v.t, v.δ, v.X, v.β)
+end
+
