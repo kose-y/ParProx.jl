@@ -57,5 +57,24 @@ function loop!(u, iterfun, evalfun, args...)
     end
 end
 
+function mapper_mat_idx(groups::Vector{Vector{Int}}, n_vars::Int; sparsemapper::Function=Base.identity)
+    rowval = vcat(groups...)
+    colptr = collect(1:(length(rowval) + 1))
+    nzval = ones(length(colptr))
+
+    grpmat = sparsemapper(SparseMatrixCSC(n_vars, length(rowval), colptr, rowval, nzval))
+
+    grpidx = Int[]
+    for (i, v) in enumerate(groups)
+        for j in 1:length(v)
+            push!(grpidx, i)
+        end
+    end
+
+    mapper = (X, X_unpen) -> hcat(LinearMap(X) * LinearMap(grpmat), LinearMap(X_unpen))
+
+    mapper, grpmat, grpidx    
+end
+
 abstract type OptimConfig end
 abstract type OptimVariables end

@@ -13,7 +13,7 @@ include("utils.jl")
 include("penalties.jl")
 include("cox.jl")
 include("logistic.jl")
-include("softmax.jl")
+#include("softmax.jl")
 include("cv.jl")
 using Requires
 function __init__()
@@ -21,6 +21,8 @@ function __init__()
         include("cuda/utils.jl")
         include("cuda/penalties.jl")
         include("cuda/cox.jl")
+        include("cuda/logistic.jl")
+        include("cuda/cv.jl")
     end
 end
 

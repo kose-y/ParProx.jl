@@ -13,6 +13,9 @@ struct NormL1{T<:Real, ArrayType<:AbstractArray} <: Penalty
     unpen::Int
 end
 
+function NormL1{T, ArrayType}(λ::T; unpen::Int=0) where {T <: Real, ArrayType <: AbstractArray}
+    return NormL1{T, ArrayType}(λ, unpen)
+end
 function NormL1(λ::T; ArrayType=Array, unpen::Int=0) where T<:Real
     return NormL1{T, ArrayType}(λ, unpen)
 end
@@ -23,8 +26,12 @@ end
 update `y` with the proximity operator value `prox_{γf}(x)`, with last `unpen` variables unpenalized.
 """
 function prox!(y::AbstractArray{T}, f::NormL1{T,A}, x::AbstractArray{T}, γ::T=one(T); unpen::Int=f.unpen) where {T <: Real, A<:AbstractArray}
-    y[1:end-unpen] .= soft_threshold.(@view(x[1:end-unpen]), γ .* f.λ)
-    y[end-unpen+1:end] .= @view(x[end-unpen+1:end])
+    if f.λ != 0
+        y[1:end-unpen] .= soft_threshold.(@view(x[1:end-unpen]), γ .* f.λ)
+        y[end-unpen+1:end] .= @view(x[end-unpen+1:end])
+    else
+        y .= x
+    end
     y
 end
 
@@ -116,12 +123,16 @@ for (Pen1, Pen2) in [(:GroupNormL2, :IndGroupBallL2), (:IndGroupBallL2, :GroupNo
 end
 
 function prox!(y::AbstractArray{T}, f::IndGroupBallL2{T,A}, x::AbstractArray{T}, γ::T=one(T)) where {T <: Real, A<:AbstractArray}
-    y .= x .^ 2
-    mul!(f.tmp_g, transpose(f.grpmat), y)
-    f.tmp_g .= sqrt.(f.tmp_g) # groupwise norms
-    f.tmp_g .= f.max_norms ./ (max.(f.max_norms, f.tmp_g))
-    gather!(f.tmp_p, f.tmp_g, f.gidx)
-    y .= x .* f.tmp_p
+    if f.λ != 0
+        y .= x .^ 2
+        mul!(f.tmp_g, transpose(f.grpmat), y)
+        f.tmp_g .= sqrt.(f.tmp_g) # groupwise norms
+        f.tmp_g .= f.max_norms ./ (max.(f.max_norms, f.tmp_g))
+        gather!(f.tmp_p, f.tmp_g, f.gidx)
+        y .= x .* f.tmp_p
+    else
+        y .= x
+    end
     y
 end
 

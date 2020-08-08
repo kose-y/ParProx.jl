@@ -1,5 +1,6 @@
 using LinearAlgebra, LinearMaps
 using Random, Adapt
+import SparseArrays: SparseMatrixCSC
 
 
 """
@@ -74,6 +75,19 @@ mutable struct COXVariables{T,A}
         
         new{T,AT}(m, n, LinearMap(X), penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj, -Inf)
     end
+end
+
+function COXVariables{T}(X::Matrix, X_unpen::Matrix, δ::AbstractVector, t::AbstractVector, lambda::T2,
+    groups::Vector{Vector{Int}};
+    σ=nothing, eval_obj=true) where {T <: Real, T2 <: Real}
+
+    mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))
+
+    X_map = mapper(X, X_unpen)
+
+    penalty = GroupNormL2(lambda, grpidx)
+
+    COXVariables{T,Array}(X_map, δ, t, penalty; eval_obj=eval_obj)
 end
 
 """
@@ -178,7 +192,6 @@ end
 
 Compute c-index
 """
-
 function cindex(t, δ, X, β)
     t = adapt(Array{eltype(t)}, t)
     δ = adapt(Array{eltype(δ)}, δ)

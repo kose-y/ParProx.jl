@@ -35,6 +35,7 @@ mutable struct LogisticVariables{T,A}
     grad::A
     probs::A # space for c probabilities
     eval_obj::Bool
+    obj_prev::Real
     function LogisticVariables{T,AT}(X::MapOrMatrix{T}, y::AbstractVector{<:Integer}, penalty::Penalty; 
                                 σ::Real=4/(power(X; ArrayType=AT)^2), eval_obj::Bool=false
                                ) where {T <: Real, AT <: AbstractArray}
@@ -48,8 +49,21 @@ mutable struct LogisticVariables{T,A}
         grad  = AT{T}(undef, n)
         probs = AT{T}(undef, m)
 
-        new{T,AT}(m, n, LinearMap(X), y, penalty, β, β_prev, σ, grad, probs, eval_obj)
+        new{T,AT}(m, n, LinearMap(X), y, penalty, β, β_prev, σ, grad, probs, eval_obj, -Inf)
     end
+end
+
+function LogisticVariables{T}(X::Matrix, X_unpen::Matrix, y::AbstractVector, lambda::T2,
+    groups::Vector{Vector{Int}};
+    σ=nothing, eval_obj=true) where {T <: Real, T2 <: Real}
+
+    mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))
+
+    X_map = mapper(X, X_unpen)
+
+    penalty = GroupNormL2(lambda, grpidx)
+
+    LogisticVariables{T,Array}(X_map, y, penalty; eval_obj=eval_obj)
 end
 
 """
@@ -98,7 +112,10 @@ function get_objective!(u::LogisticUpdate, v::LogisticVariables{T,A}) where {T,A
         mul!(v.probs, v.X, v.β)
         logistic!(v.probs, v.probs)
         obj = sum(v.y .* log.(v.probs) .+ (one(T) .- v.y) .* log.(one(T) .- v.probs)) / size(v.X, 1) .- value(v.penalty, v.β)
-        return false, (obj, nnz)
+        reldiff = (abs(obj - v.obj_prev))/(abs(obj) + one(T))
+        converged =  reldiff < u.tol
+        v.obj_prev = obj
+        return converged, (obj, reldiff, nnz)
     else
         v.grad .= abs.(v.β .- v.β_prev)
         return false, (maximum(v.grad), nnz)
@@ -126,3 +143,18 @@ function fit!(u::LogisticUpdate, v::LogisticVariables)
     loop!(u, one_iter!, get_objective!, v)
 end
 
+"""
+    accuracy(y, X, β)
+
+Compute accuracy
+"""
+function accuracy(y, X, β)
+    y = adapt(Array{eltype(y)}, y)
+    Xβ = adapt(Array{eltype(β)}, X * β)
+    prediction = logistic(Xβ) .>= 0.5
+
+    numerator = count(prediction .== y)
+    denominator = length(y)
+
+    numerator / denominator
+end
