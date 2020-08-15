@@ -216,4 +216,3 @@ end
 function cindex(v::COXVariables)
     cindex(v.t, v.δ, v.X, v.β)
 end
-

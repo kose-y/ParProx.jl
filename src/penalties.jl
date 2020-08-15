@@ -44,6 +44,17 @@ function value(f::NormL1{T,A}, x::AbstractArray{T}; unpen::Int=f.unpen) where {T
     return f.λ * sum(abs.(@view(x[1:end-unpen])))
 end
 
+struct ZeroPenalty <: Penalty
+end
+
+function prox!(y::AbstractArray{T}, f::ZeroPenalty, x::AbstractArray{T}) where T <: Real
+    y .= x
+end
+
+function value(f::ZeroPenalty, x::AbstractArray{T}) where T <: Real
+    zero(T)
+end
+
 function _get_grouplasso_args(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: Integer}
     @assert idx[1] == 1
     diff = idx[2:end] - idx[1:end-1]
@@ -110,9 +121,6 @@ for Pen in (:GroupNormL2, :IndGroupBallL2)
         end
     end
 end
-
-
-
 
 for (Pen1, Pen2) in [(:GroupNormL2, :IndGroupBallL2), (:IndGroupBallL2, :GroupNormL2)]
     @eval begin

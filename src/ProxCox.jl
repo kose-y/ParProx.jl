@@ -3,7 +3,7 @@ module ProxCox
 import Base: length
 
 export Penalty, NormL1, GroupNormL2, value, prox!
-export power, CoxUpdate, CoxVariables, reset!,  get_objective!, fit!
+export power, COXUpdate, COXVariables, reset!,  get_objective!, fit!
 
 using LinearMaps
 
@@ -13,7 +13,7 @@ include("utils.jl")
 include("penalties.jl")
 include("cox.jl")
 include("logistic.jl")
-#include("softmax.jl")
+include("softmax.jl")
 include("cv.jl")
 using Requires
 function __init__()
