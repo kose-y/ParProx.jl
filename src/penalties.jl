@@ -13,9 +13,20 @@ struct NormL1{T<:Real, ArrayType<:AbstractArray} <: Penalty
     unpen::Int
 end
 
+"""
+    NormL1{T, ArrayType}(λ; unpen::Int=0)
+
+L1 penalty. `λ`: size of penalty, `unpen`: number of unpenalized variables at the end.
+"""
 function NormL1{T, ArrayType}(λ::T; unpen::Int=0) where {T <: Real, ArrayType <: AbstractArray}
     return NormL1{T, ArrayType}(λ, unpen)
 end
+
+"""
+    NormL1(λ::T; ArrayType=Array, unpen::Int=0) where T<:Real
+
+L1 penalty. `ArrayType` is defined in a keyword argument.
+"""
 function NormL1(λ::T; ArrayType=Array, unpen::Int=0) where T<:Real
     return NormL1{T, ArrayType}(λ, unpen)
 end
@@ -44,6 +55,11 @@ function value(f::NormL1{T,A}, x::AbstractArray{T}; unpen::Int=f.unpen) where {T
     return f.λ * sum(abs.(@view(x[1:end-unpen])))
 end
 
+"""
+    ZeroPenalty()
+
+A zero penalty. 
+"""
 struct ZeroPenalty <: Penalty
 end
 
@@ -82,6 +98,17 @@ function _get_grouplasso_args_sepcols(λ::T, idx::Vector{Ti}, ncols::Int) where 
     # grpmat repeated horizontally ncols times, offsetting needed for gidx, sizes repeated ncols times, p multiplied by ncols (?), 
     # ngrp multiplied by ncols, max_norms repeated, tmp_p becomes a matrix (or a longer vector), tmp_g becomes a matrix (or longer vector)
 end
+
+"""
+    GroupNormL2(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: Integer}
+
+Nonoverlapping L1-L2 group norm penalty. Ti indicates group membership of each element.
+
+$$
+g(x) = λ \sum_{i = 1}^g \sqrt{|g_i|}\|x_{g_i}\|_2.
+$$
+"""
+GroupNormL2
 
 for Pen in (:GroupNormL2, :IndGroupBallL2) 
     @eval begin

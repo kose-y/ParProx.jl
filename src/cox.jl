@@ -33,9 +33,19 @@ function breslow_ind(x::AbstractVector)
 end
 
 """
-    COXVariables(X::MapOrMatrix, δ::AbstractVector, t::AbstractVector, penalty::Penalty; σ::Real=1/(2*power(X)^2), eval_obj::Bool=false))
+    COXVariables{T, A}(X::MapOrMatrix, δ::AbstractVector, t::AbstractVector, penalty::Penalty; σ::Real=1/(2*power(X)^2), eval_obj::Bool=false)
+    ) where {T <: Real, AT <: AbstractArray}
 
 Setup variables for Cox regression given the data and penalty configuration.
+
+# Arguments
+
+- `X::MapOrMatrix`: Data matrix
+- `δ::AbstractVector`: Event indicator
+- `t::AbstractVector`: Observed time to event or censoring
+- `penalty::Penalty`: A penalty object.
+- `σ::Real=1/(2*power(X; ArrayType=AT)^2)`: Step size.
+- `eval_obj::Bool=false`: whether to evaluate the objective function
 """
 mutable struct COXVariables{T,A}
     m::Int # rows
@@ -77,9 +87,24 @@ mutable struct COXVariables{T,A}
     end
 end
 
-function COXVariables{T}(X::Matrix, X_unpen::Matrix, δ::AbstractVector, t::AbstractVector, lambda::T2,
-    groups::Vector{Vector{Int}};
-    σ=nothing, eval_obj=true) where {T <: Real, T2 <: Real}
+"""
+    COXVariables{<:Real}(X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector, lambda::Real, 
+        groups::Vector{Vector{Int}}; eval_obj::Bool=false))
+
+Setup variables for Cox regression given the data and an overlapping group lasso penalty.
+
+# Arguments
+
+- `X::AbstractMatrix`: Penalized variables
+- `X_unpen::AbstractMatrix`: Unpenalized variables
+- `δ::AbstractVector`: Event indicator
+- `t::AbstractVector`: Observed time to event or censoring
+- `λ::Real`: size of penalty
+- `groups::Vector{Vector{Int}}`: each element denotes member variables of each group. A variable may appear in multiple groups.
+- `eval_obj::Bool`: whether to evaluate the objective function
+"""
+function COXVariables{T}(X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector, lambda::T2,
+    groups::Vector{Vector{Int}}; eval_obj=true) where {T <: Real, T2 <: Real}
 
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))
 

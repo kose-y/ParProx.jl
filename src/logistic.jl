@@ -4,7 +4,7 @@ using Random, Adapt
 """
     SoftmaxUpdate(; maxiter::Int=100, step::Int=10, tol::Real=1e-10)
 
-Stopping and evaluation rule for Cox regression
+Stopping and evaluation rule for Logistic regression
 """
 mutable struct LogisticUpdate
     maxiter::Int
@@ -19,9 +19,18 @@ mutable struct LogisticUpdate
 end
 
 """
-    SoftmaxVariables(X::LinearMap, y::AbstractMatrix, penalty::Penalty; σ::Real=1/(2*power(X)^2), eval_obj::Bool=false))
+    LogisticVariables{T, AT}(X::LinearMap, y::AbstractMatrix, penalty::Penalty; σ::Real=1/(2*power(X)^2), eval_obj::Bool=false)
+    ) where {T <: Real, AT <: AbstractArray}
 
-Setup variables for multinomial logistic regression given the data and penalty configuration.
+Setup variables for logistic regression given the data and penalty configuration.
+
+# Arguments
+
+- `X::MapOrMatrix`: Data matrix
+- `y::AbstractVector`: class label
+- `penalty::Penalty`: A penalty object.
+- `σ::Real=4/(power(X; ArrayType=AT)^2)`: Step size.
+- `eval_obj::Bool=false`: whether to evaluate the objective function
 """
 mutable struct LogisticVariables{T,A}
     m::Int # rows
@@ -53,6 +62,21 @@ mutable struct LogisticVariables{T,A}
     end
 end
 
+"""
+    LogisticVariables{<:Real}(X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, lambda::Real, 
+        groups::Vector{Vector{Int}}; eval_obj::Bool=false))
+
+Setup variables for Logistic regression given the data and an overlapping group lasso penalty.
+
+# Arguments
+
+- `X::AbstractMatrix`: Penalized variables
+- `X_unpen::AbstractMatrix`: Unpenalized variables
+- `y::AbstractVector`: class label
+- `λ::Real`: size of penalty
+- `groups::Vector{Vector{Int}}`: each element denotes member variables of each group. A variable may appear in multiple groups.
+- `eval_obj::Bool`: whether to evaluate the objective function
+"""
 function LogisticVariables{T}(X::Matrix, X_unpen::Matrix, y::AbstractVector, lambda::T2,
     groups::Vector{Vector{Int}};
     σ=nothing, eval_obj=true) where {T <: Real, T2 <: Real}

@@ -57,6 +57,21 @@ function loop!(u, iterfun, evalfun, args...)
     end
 end
 
+"""
+    mapper_mat_idx
+
+Create three items.
+
+1. Function that creates a function that maps a pair of data matrices (penalized variables, unpenalized variables) to a LinearMap object
+2. `grpmat`, a sparse matrix that rearranges variables in the order of groups, with possible replications.
+3. `grpidx`, indicating which group each column of `grpmat` corresponds to.
+
+# Arguments
+
+* `groups::Vector{Vector{Int}}`: each element is an array of indices of variables in each group.
+* `n_vars::Int`: number of penalized variables
+* `sparsemapper`: a function that takes a `SparseMatrixCSC` to create a spares matrix for the device.
+"""
 function mapper_mat_idx(groups::Vector{Vector{Int}}, n_vars::Int; sparsemapper::Function=Base.identity)
     rowval = vcat(groups...)
     colptr = collect(1:(length(rowval) + 1))
