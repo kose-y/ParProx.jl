@@ -141,7 +141,7 @@ Perform `k`-fold cross validation for L1-regularized Cox regression with overlap
 """
 function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector, 
     groups::Vector{Vector{Int}}, lambdas::AbstractVector{<:Real}, k::Integer; 
-    T::AbstractFloat=Float64)
+    T=Float64)
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))

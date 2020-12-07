@@ -1,10 +1,10 @@
-function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVector, t::CuVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int; 
+function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVector, t::CuVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
     T=Float64)
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2); sparsemapper=(x)->
-        CUSPARSE.CuSparseMatrixCSC{T}(convert(CuArray{Cint}, x.colptr), convert(CuArray{Cint}, x.rowval), 
-        adapt(CuArray{T}, x.nzval), size(x), convert(Cint,length(x.nzval))))
+        CUSPARSE.CuSparseMatrixCSC{T}(convert(CuArray{Cint}, x.colptr), convert(CuArray{Cint}, x.rowval),
+        adapt(CuArray{T}, x.nzval), size(x)))#, convert(Cint,length(x.nzval))))
     scores = Array{Float64}(undef, length(lambdas), k)
     for (j, train_inds) in enumerate(gen)
         test_inds = setdiff(1:n, train_inds)
@@ -27,12 +27,12 @@ function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVect
     scores
 end
 
-function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::CuVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int; 
+function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::CuVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
     T=Float64)
     gen = StratifiedKfold(y, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2); sparsemapper=(x)->
-        CUSPARSE.CuSparseMatrixCSC{T}(convert(CuArray{Cint}, x.colptr), convert(CuArray{Cint}, x.rowval), 
+        CUSPARSE.CuSparseMatrixCSC{T}(convert(CuArray{Cint}, x.colptr), convert(CuArray{Cint}, x.rowval),
         adapt(CuArray{T}, x.nzval), size(x), convert(Cint,length(x.nzval))))
     scores = Array{Float64}(undef, length(lambdas), k)
     for (j, train_inds) in enumerate(gen)

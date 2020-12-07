@@ -104,9 +104,9 @@ end
 
 Nonoverlapping L1-L2 group norm penalty. Ti indicates group membership of each element.
 
-$$
-g(x) = λ \sum_{i = 1}^g \sqrt{|g_i|}\|x_{g_i}\|_2.
-$$
+
+g(x) = λ sum_{i = 1}^g sqrt{|g_i|} ||x_{g_i}||_2.
+
 """
 GroupNormL2
 
