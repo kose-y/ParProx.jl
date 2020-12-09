@@ -15,7 +15,7 @@ function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVect
         t_train = t[train_inds]
         t_test = t[test_inds]
         p = GroupNormL2{T, CuArray}(lambdas[1], grpidx)
-        V = ProxCox.COXVariables{T, CuArray}(X_train, δ_train, t_train, p; eval_obj=true)
+        V = ParProx.COXVariables{T, CuArray}(X_train, δ_train, t_train, p; eval_obj=true)
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2{T, CuArray}(l, grpidx)
             V.penalty = p
@@ -42,7 +42,7 @@ function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::Cu
         y_train = y[train_inds]
         y_test = y[test_inds]
         p = GroupNormL2{T, CuArray}(lambdas[1], grpidx)
-        V = ProxCox.LogisticVariables{T, CuArray}(X_train, y_train, p; eval_obj=true)
+        V = ParProx.LogisticVariables{T, CuArray}(X_train, y_train, p; eval_obj=true)
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2{T, CuArray}(l, grpidx)
             V.penalty = p

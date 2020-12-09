@@ -98,7 +98,7 @@ function cross_validate(estfun::Function, evalfun::Function, n::Int, gen)
 end
 
 
-function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penalties::Vector{P}, k::Int; T=Float64, A=Array, mapper=Base.identity) where P <: Penalty 
+function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penalties::Vector{P}, k::Int; T=Float64, A=Array, mapper=Base.identity) where P <: Penalty
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     scores = Array{Float64}(undef, length(penalties), k)
@@ -125,7 +125,7 @@ end
 """
     cross_validate(u::COXUpdate, X::Matrix, X_unpen::Matrix, δ::Vector, t::Vector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int; T=Float64)
 
-Perform `k`-fold cross validation for L1-regularized Cox regression with overlapping group lasso penalties. 
+Perform `k`-fold cross validation for L1-regularized Cox regression with overlapping group lasso penalties.
 
 # Arguments
 
@@ -136,11 +136,11 @@ Perform `k`-fold cross validation for L1-regularized Cox regression with overlap
 - `t::AbstractVector`: observed time to event or censoring
 - `groups::Vector{Vector{Int}}`: each element denotes member variables of each group. A variable may appear in multiple groups.
 - `lambdas`: vector of λs to perform CV.
-- `k`: fold. 
+- `k`: fold.
 - `T`: A type of AbstractFloat.
 """
-function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector, 
-    groups::Vector{Vector{Int}}, lambdas::AbstractVector{<:Real}, k::Integer; 
+function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector,
+    groups::Vector{Vector{Int}}, lambdas::AbstractVector{<:Real}, k::Integer;
     T=Float64)
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
@@ -155,7 +155,7 @@ function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix
         t_train = t[train_inds]
         t_test = t[test_inds]
         p = GroupNormL2(lambdas[1], grpidx)
-        V = ProxCox.COXVariables{T, Array}(X_train, δ_train, t_train, p; eval_obj=true)
+        V = ParProx.COXVariables{T, Array}(X_train, δ_train, t_train, p; eval_obj=true)
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2(l, grpidx)
             V.penalty = p
@@ -170,7 +170,7 @@ end
 """
     cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int; T=Float64)
 
-Perform `k`-fold cross validation for L1-regularized Cox regression with overlapping group lasso penalties. 
+Perform `k`-fold cross validation for L1-regularized Cox regression with overlapping group lasso penalties.
 
 # Arguments
 
@@ -180,10 +180,10 @@ Perform `k`-fold cross validation for L1-regularized Cox regression with overlap
 - `y::AbstractVector`: 0/1 class indicator
 - `groups::Vector{Vector{Int}}`: each element denotes member variables of each group. A variable may appear in multiple groups.
 - `lambdas`: vector of λs to perform CV.
-- `k`: fold. 
+- `k`: fold.
 - `T`: A type of AbstractFloat.
 """
-function cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int; 
+function cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
     T=Float64)
     gen = StratifiedKfold(y, k)
     n = size(X, 1)
@@ -195,7 +195,7 @@ function cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractM
         X_test = mapper(X[test_inds, :], X_unpen[test_inds, :])
         y_train = y[train_inds]
         y_test = y[test_inds]
-        
+
         p = GroupNormL2(lambdas[1], grpidx)
         V = ProxCox.LogisticVariables{T, Array}(X_train, y_train, p; eval_obj=true)
         for (i, l) in enumerate(lambdas)

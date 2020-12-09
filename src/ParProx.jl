@@ -1,4 +1,4 @@
-module ProxCox
+module ParProx
 
 import Base: length
 
