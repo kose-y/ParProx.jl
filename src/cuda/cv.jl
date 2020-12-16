@@ -28,12 +28,12 @@ function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVect
 end
 
 function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::CuVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
-    T=Float64)
+    T=Float64, criteria=accuracy)
     gen = StratifiedKfold(y, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2); sparsemapper=(x)->
         CUSPARSE.CuSparseMatrixCSC{T}(convert(CuArray{Cint}, x.colptr), convert(CuArray{Cint}, x.rowval),
-        adapt(CuArray{T}, x.nzval), size(x), convert(Cint,length(x.nzval))))
+        adapt(CuArray{T}, x.nzval), size(x)))
     scores = Array{Float64}(undef, length(lambdas), k)
     for (j, train_inds) in enumerate(gen)
         test_inds = setdiff(1:n, train_inds)
@@ -48,7 +48,7 @@ function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::Cu
             V.penalty = p
             V.obj_prev = -Inf
             @time fit!(u, V)
-            scores[i, j] = accuracy(y_test, X_test, V.β)
+            scores[i, j] = criteria(y_test, X_test, V.β)
         end
     end
     scores

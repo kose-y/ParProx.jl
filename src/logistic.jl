@@ -40,12 +40,12 @@ mutable struct LogisticVariables{T,A}
     penalty::Penalty
     β::A
     β_prev::A
-    σ::T # step size. 1/(2 * opnorm(X)^2) for guaranteed convergence. 
+    σ::T # step size. 1/(2 * opnorm(X)^2) for guaranteed convergence.
     grad::A
     probs::A # space for c probabilities
     eval_obj::Bool
     obj_prev::Real
-    function LogisticVariables{T,AT}(X::MapOrMatrix{T}, y::AbstractVector{<:Integer}, penalty::Penalty; 
+    function LogisticVariables{T,AT}(X::MapOrMatrix{T}, y::AbstractVector{<:Integer}, penalty::Penalty;
                                 σ::Real=4/(power(X; ArrayType=AT)^2), eval_obj::Bool=false
                                ) where {T <: Real, AT <: AbstractArray}
         m, n = size(X)
@@ -54,7 +54,7 @@ mutable struct LogisticVariables{T,A}
         β_prev = AT{T}(undef, n)
         fill!(β, zero(T))
         fill!(β_prev, zero(T))
-        
+
         grad  = AT{T}(undef, n)
         probs = AT{T}(undef, m)
 
@@ -63,7 +63,7 @@ mutable struct LogisticVariables{T,A}
 end
 
 """
-    LogisticVariables{<:Real}(X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, lambda::Real, 
+    LogisticVariables{<:Real}(X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, lambda::Real,
         groups::Vector{Vector{Int}}; eval_obj::Bool=false))
 
 Setup variables for Logistic regression given the data and an overlapping group lasso penalty.
@@ -181,4 +181,11 @@ function accuracy(y, X, β)
     denominator = length(y)
 
     numerator / denominator
+end
+
+function auc(y, X, β)
+    scores_zero = (X * β)[y .== 0]
+    scores_one = (X * β)[y .== 1]
+    r = roc(collect(scores_one), collect(scores_zero))
+    auc = AUC(r)
 end

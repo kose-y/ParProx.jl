@@ -1,13 +1,16 @@
 module ParProx
 
 import Base: length
-
+import ROCAnalysis: roc, AUC
 export Penalty, NormL1, GroupNormL2, value, prox!
 export power, COXUpdate, COXVariables, reset!,  get_objective!, fit!
+export cindex, accuracy, auc
 
 using LinearMaps
 
 const MapOrMatrix{T} = Union{LinearMap{T},AbstractMatrix{T}}
+
+datadir(parts...) = joinpath(@__DIR__, "..", "data", parts...)
 
 include("utils.jl")
 include("penalties.jl")
