@@ -112,7 +112,8 @@ Perform `k`-fold cross validation for penalized Cox regression.
 - `k`: fold.
 - `T`: A type of AbstractFloat.
 """
-function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penalties::Vector{P}, k::Int; T=Float64, A=Array, mapper=Base.identity) where P <: Penalty
+function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penalties::Vector{P}, k::Int;
+    T=Float64, A=Array, mapper=Base.identity, eval_obj=true) where P <: Penalty
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     scores = Array{Float64}(undef, length(penalties), k)
@@ -125,7 +126,7 @@ function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penaltie
         t_train = t[train_inds]
         t_test = t[test_inds]
         p = penalties[1]
-        V = ParProx.COXVariables{T, A}(adapt(A{T}, X_train), adapt(A{T}, δ_train), adapt(A{T}, t_train), p; eval_obj=true)
+        V = ParProx.COXVariables{T, A}(adapt(A{T}, X_train), adapt(A{T}, δ_train), adapt(A{T}, t_train), p; eval_obj=eval_obj)
         for (i, p) in enumerate(penalties)
             V.penalty = p
             V.obj_prev = -Inf
@@ -155,7 +156,7 @@ Perform `k`-fold cross validation for Cox regression with overlapping group lass
 """
 function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector,
     groups::Vector{Vector{Int}}, lambdas::AbstractVector{<:Real}, k::Integer;
-    T=Float64)
+    T=Float64, eval_obj=true)
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))
@@ -169,7 +170,7 @@ function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix
         t_train = t[train_inds]
         t_test = t[test_inds]
         p = GroupNormL2(lambdas[1], grpidx)
-        V = ParProx.COXVariables{T, Array}(X_train, δ_train, t_train, p; eval_obj=true)
+        V = ParProx.COXVariables{T, Array}(X_train, δ_train, t_train, p; eval_obj=eval_obj)
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2(l, grpidx)
             V.penalty = p
@@ -197,7 +198,8 @@ Perform `k`-fold cross validation for penalized logistic regression.
 - `k`: fold.
 - `T`: A type of AbstractFloat.
 """
-function cross_validate(u::LogisticUpdate, X::Matrix, y::Vector, penalties::Vector{P}, k::Int; T=Float64, A=Array, criteria=accuracy, mapper=Base.identity) where P <: Penalty
+function cross_validate(u::LogisticUpdate, X::Matrix, y::Vector, penalties::Vector{P}, k::Int;
+    T=Float64, A=Array, criteria=accuracy, mapper=Base.identity, eval_obj=true) where P <: Penalty
     gen = StratifiedKfold(y, k)
     n = size(X, 1)
     scores = Array{Float64}(undef, length(penalties), k)
@@ -208,7 +210,7 @@ function cross_validate(u::LogisticUpdate, X::Matrix, y::Vector, penalties::Vect
         y_train = y[train_inds]
         y_test = y[test_inds]
         p = penalties[1]
-        V = ParProx.LogisticVariables{T, Array}(X_train, y_train, p; eval_obj=true)
+        V = ParProx.LogisticVariables{T, Array}(X_train, y_train, p; eval_obj=eval_obj)
         for (i, p) in enumerate(penalties)
             V.penalty = p
             V.obj_prev = -Inf
@@ -237,7 +239,7 @@ Perform `k`-fold cross validation for logistic regression with overlapping group
 - `T`: A type of AbstractFloat.
 """
 function cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
-    T=Float64, criteria=accuracy)
+    T=Float64, criteria=accuracy, eval_obj=true)
     gen = StratifiedKfold(y, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))
@@ -250,7 +252,7 @@ function cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractM
         y_test = y[test_inds]
 
         p = GroupNormL2(lambdas[1], grpidx)
-        V = ParProx.LogisticVariables{T, Array}(X_train, y_train, p; eval_obj=true)
+        V = ParProx.LogisticVariables{T, Array}(X_train, y_train, p; eval_obj=eval_obj)
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2(l, grpidx)
             V.penalty = p

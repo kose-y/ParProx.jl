@@ -141,8 +141,10 @@ function get_objective!(u::LogisticUpdate, v::LogisticVariables{T,A}) where {T,A
         v.obj_prev = obj
         return converged, (obj, reldiff, nnz)
     else
-        v.grad .= abs.(v.β .- v.β_prev)
-        return false, (maximum(v.grad), nnz)
+        v.grad .= (v.β_prev .- v.β)
+        relchange = norm(v.grad) / (norm(v.β) + 1e-20)
+        converged = relchange < u.tol
+        return converged, (relchange, norm(v.β),  nnz)
     end
 end
 

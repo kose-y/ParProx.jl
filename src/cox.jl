@@ -57,15 +57,15 @@ mutable struct COXVariables{T,A}
     δ::A # indicator for right censoring (0 if censored)
     t::A # timestamps, must be in nonincreasing order
     breslow::A
-    σ::T # step size. 1/(2 * opnorm(X)^2) for guaranteed convergence. 
+    σ::T # step size. 1/(2 * opnorm(X)^2) for guaranteed convergence.
     grad::A
     w::A
     W::A
     q::A # (1 - π)δ
     eval_obj::Bool
     obj_prev::Real
-    function COXVariables{T,AT}(X::MapOrMatrix, δ::AbstractVector, 
-                                t::AbstractVector, penalty::Penalty; 
+    function COXVariables{T,AT}(X::MapOrMatrix, δ::AbstractVector,
+                                t::AbstractVector, penalty::Penalty;
                                 σ::Real=1/(2*power(X; ArrayType=AT)^2), eval_obj::Bool=false
                                ) where {T <: Real, AT <: AbstractArray}
         m, n = size(X)
@@ -73,22 +73,22 @@ mutable struct COXVariables{T,A}
         β_prev = AT{T}(undef, n)
         fill!(β, zero(T))
         fill!(β_prev, zero(T))
-        
+
         δ = convert(AT{T}, δ)
-        
+
         breslow = convert(AT{Int}, breslow_ind(convert(Array, t)))
-        
+
         grad  = AT{T}(undef, n)
         w = AT{T}(undef, m)
         W = AT{T}(undef, m)
-        q = AT{T}(undef, m) 
-        
+        q = AT{T}(undef, m)
+
         new{T,AT}(m, n, LinearMap(X), penalty, β, β_prev, δ, t, breslow, σ, grad, w, W, q, eval_obj, -Inf)
     end
 end
 
 """
-    COXVariables{<:Real}(X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector, lambda::Real, 
+    COXVariables{<:Real}(X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector, lambda::Real,
         groups::Vector{Vector{Int}}; eval_obj::Bool=false))
 
 Setup variables for Cox regression given the data and an overlapping group lasso penalty.
@@ -131,11 +131,11 @@ end
 compute out[i] = δ[j] * w[i]/ W[j] * I(breslow[i] <= breslow[j]).
 """
 function π_δ!(out, w, W, δ, breslow)
-    # fill `out` with zeros beforehand. 
+    # fill `out` with zeros beforehand.
     m = length(δ)
     Threads.@threads for i in 1:m
         for j in 1:m
-            @inbounds if breslow[i] <= breslow[j] 
+            @inbounds if breslow[i] <= breslow[j]
                 out[i] +=  δ[j] * w[i]/ W[j]
             end
         end
@@ -147,13 +147,14 @@ function cox_grad!(out, w, W, t, q, X, β, δ, bind)
     T = eltype(β)
     m, n = size(X)
     mul!(w, X, β)
-    w .= exp.(w) 
+    w .= exp.(w)
     cumsum!(q, w) # q is used as a dummy variable
     gather!(W, q, bind)
     fill!(q, zero(eltype(q)))
     π_δ!(q, w, W, δ, bind)
     q .= δ .- q
     mul!(out, transpose(X), q)
+    out = out ./ n
     out
 end
 
@@ -172,20 +173,22 @@ Computes the objective function
 function get_objective!(u::COXUpdate, v::COXVariables{T,A}) where {T,A}
     v.grad .= (v.β .!= 0) # grad used as dummy
     nnz = sum(v.grad)
-    
+
     if v.eval_obj
         v.w .= exp.(mul!(v.w, v.X, v.β))
         cumsum!(v.q, v.w) # q used as dummy
         #v.W .= v.q[v.breslow]
         gather!(v.W, v.q, v.breslow)
-        obj = dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W)) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
+        obj = (dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W))) ./ size(X, 2) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
         reldiff = (abs(obj - v.obj_prev))/(abs(obj) + one(T))
         converged =  reldiff < u.tol
         v.obj_prev = obj
         return converged, (obj, reldiff, nnz)
     else
-        v.grad .= abs.(v.β_prev .- v.β)
-        return false, (maximum(v.grad), nnz)
+        v.grad .= (v.β_prev .- v.β)
+        relchange = norm(v.grad) / (norm(v.β) + 1e-20)
+        converged = relchange < u.tol
+        return converged, (relchange, norm(v.β),  nnz)
     end
 end
 
@@ -229,9 +232,9 @@ function cindex(t, δ, X, β)
             t[i] == t[j] && continue
             δ[j] == 0 && continue
             denominator += 1
-            if Xβ[i] < Xβ[j]  
+            if Xβ[i] < Xβ[j]
                 numerator += 1
-            end 
+            end
         end
     end
 

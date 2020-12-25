@@ -1,5 +1,5 @@
 function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVector, t::CuVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
-    T=Float64)
+    T=Float64, eval_obj=true)
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2); sparsemapper=(x)->
@@ -15,7 +15,7 @@ function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVect
         t_train = t[train_inds]
         t_test = t[test_inds]
         p = GroupNormL2{T, CuArray}(lambdas[1], grpidx)
-        V = ParProx.COXVariables{T, CuArray}(X_train, δ_train, t_train, p; eval_obj=true)
+        V = ParProx.COXVariables{T, CuArray}(X_train, δ_train, t_train, p; eval_obj=eval_obj)
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2{T, CuArray}(l, grpidx)
             V.penalty = p
@@ -28,7 +28,7 @@ function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVect
 end
 
 function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::CuVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
-    T=Float64, criteria=accuracy)
+    T=Float64, criteria=accuracy, eval_obj=true)
     gen = StratifiedKfold(y, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2); sparsemapper=(x)->
@@ -42,7 +42,7 @@ function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::Cu
         y_train = y[train_inds]
         y_test = y[test_inds]
         p = GroupNormL2{T, CuArray}(lambdas[1], grpidx)
-        V = ParProx.LogisticVariables{T, CuArray}(X_train, y_train, p; eval_obj=true)
+        V = ParProx.LogisticVariables{T, CuArray}(X_train, y_train, p; eval_obj=eval_obj)
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2{T, CuArray}(l, grpidx)
             V.penalty = p
