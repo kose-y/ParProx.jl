@@ -179,7 +179,7 @@ function get_objective!(u::COXUpdate, v::COXVariables{T,A}) where {T,A}
         cumsum!(v.q, v.w) # q used as dummy
         #v.W .= v.q[v.breslow]
         gather!(v.W, v.q, v.breslow)
-        obj = (dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W))) ./ size(X, 2) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
+        obj = (dot(v.δ, mul!(v.q, v.X, v.β) .- log.(v.W))) ./ size(v.X, 2) .- value(v.penalty, v.β) #v.λ .* sum(abs.(v.β))
         reldiff = (abs(obj - v.obj_prev))/(abs(obj) + one(T))
         converged =  reldiff < u.tol
         v.obj_prev = obj
