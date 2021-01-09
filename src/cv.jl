@@ -130,7 +130,11 @@ function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penaltie
         for (i, p) in enumerate(penalties)
             V.penalty = p
             V.obj_prev = -Inf
-            @time fit!(u, V)
+            if u.verbose
+                @time fit!(u, V)
+            else
+                fit!(u, V)
+            end
             scores[i, j] = cindex(t_test, δ_test, X_test, adapt(Array{T}, V.β))
         end
     end
@@ -175,7 +179,11 @@ function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractVecOrM
             p = GroupNormL2(l, grpidx)
             V.penalty = p
             V.obj_prev = -Inf
-            @time fit!(u, V)
+            if u.verbose
+                @time fit!(u, V)
+            else
+                fit!(u, V)
+            end
             scores[i, j] = cindex(t_test, δ_test, X_test, V.β)
         end
     end
