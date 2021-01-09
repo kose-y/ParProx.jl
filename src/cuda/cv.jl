@@ -20,7 +20,11 @@ function cross_validate(u::COXUpdate, X::CuMatrix, X_unpen::CuMatrix, δ::CuVect
             p = GroupNormL2{T, CuArray}(l, grpidx)
             V.penalty = p
             V.obj_prev = -Inf
-            @time fit!(u, V)
+            if u.verbose
+                @time fit!(u, V)
+            else
+                fit!(u, V)
+            end
             scores[i, j] = cindex(t_test, δ_test, X_test, V.β)
         end
     end
@@ -47,7 +51,11 @@ function cross_validate(u::LogisticUpdate, X::CuMatrix, X_unpen::CuMatrix, y::Cu
             p = GroupNormL2{T, CuArray}(l, grpidx)
             V.penalty = p
             V.obj_prev = -Inf
-            @time fit!(u, V)
+            if u.verbose
+                @time fit!(u, V)
+            else
+                fit!(u, V)
+            end
             scores[i, j] = criteria(y_test, X_test, V.β)
         end
     end
