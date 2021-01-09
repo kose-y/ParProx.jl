@@ -58,7 +58,7 @@ end
 """
     ZeroPenalty()
 
-A zero penalty. 
+A zero penalty.
 """
 struct ZeroPenalty <: Penalty
 end
@@ -90,12 +90,12 @@ function _get_grouplasso_args(λ::T, idx::Vector{Ti}) where {T <: Real, Ti <: In
 end
 
 function _get_grouplasso_args_rowwise(λ::T, idx::Vector{Ti}, ncols::Int) where {T <: Real, Ti <: Integer}
-    # grpmat stands, gidx stands, sizes multiplied by ncols, p multiplied by ncols (?), ngrp stands, max_norms multiplied by sqrt(ncols), 
-    # tmp_p becomes a matrix, tmp_g stands. 
+    # grpmat stands, gidx stands, sizes multiplied by ncols, p multiplied by ncols (?), ngrp stands, max_norms multiplied by sqrt(ncols),
+    # tmp_p becomes a matrix, tmp_g stands.
 end
 
 function _get_grouplasso_args_sepcols(λ::T, idx::Vector{Ti}, ncols::Int) where {T <: Real, Ti <: Integer}
-    # grpmat repeated horizontally ncols times, offsetting needed for gidx, sizes repeated ncols times, p multiplied by ncols (?), 
+    # grpmat repeated horizontally ncols times, offsetting needed for gidx, sizes repeated ncols times, p multiplied by ncols (?),
     # ngrp multiplied by ncols, max_norms repeated, tmp_p becomes a matrix (or a longer vector), tmp_g becomes a matrix (or longer vector)
 end
 
@@ -110,7 +110,7 @@ g(x) = λ sum_{i = 1}^g sqrt{|g_i|} ||x_{g_i}||_2.
 """
 GroupNormL2
 
-for Pen in (:GroupNormL2, :IndGroupBallL2) 
+for Pen in (:GroupNormL2, :IndGroupBallL2)
     @eval begin
         struct ($Pen){T<:Real, ArrayType<:AbstractArray} <: Penalty
             λ::T
@@ -138,12 +138,12 @@ for Pen in (:GroupNormL2, :IndGroupBallL2)
             #some special setups depending on the value of rowwise
             if rowwise
                 #TODO
-            
-            
+
+
             else
                 #TODO
-            
-            
+
+
             end
         end
     end
@@ -184,9 +184,9 @@ end
 
 
 #=
-function prox!(y::AbstractMatrix{T}, f::GroupNormL2{T,A}, x::AbstractMatrix{T}, γ::T=one(T); unpen::Int=size(x, 1) - f.p, rowwise=false, 
+function prox!(y::AbstractMatrix{T}, f::GroupNormL2{T,A}, x::AbstractMatrix{T}, γ::T=one(T); unpen::Int=size(x, 1) - f.p, rowwise=false,
                tmp_g::AbstractMatrix{T} = rowwise ? similar(x, f.ngrps, size(x, 2)) : similar(x, f.ngrps * size(x, 2))) where {T <: Real, A <: AbstractArray}
-    y[1:end-unpen, :] .= @view(x[1:end-unpen, :]) .^ 2 
+    y[1:end-unpen, :] .= @view(x[1:end-unpen, :]) .^ 2
 
     if rowwise
         grpmat = kron(ones(1, ), f.grpmat)
@@ -222,7 +222,7 @@ function value(f::GroupNormL2{T,A}, x::AbstractVector{T}; unpen::Int=length(x) -
 end
 
 #=
-function value(f::GroupNormL2{T,A}, x::AbstractMatrix{T}; unpen::Int=size(x, 1) - f.p, rowwise=false, 
+function value(f::GroupNormL2{T,A}, x::AbstractMatrix{T}; unpen::Int=size(x, 1) - f.p, rowwise=false,
                tmp_g::AbstractMatrix{T}=similar(x, f.ngrps, size(x,2)), tmp_p::AbstractMatrix{T}=similar(x, size(x,1)-unpen, size(x, 2))) where {T <: Real, A <: AbstractArray}
 
     tmp_p .= @view(x[1:end-unpen, :]) .^ 2

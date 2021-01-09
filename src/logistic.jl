@@ -77,13 +77,13 @@ Setup variables for Logistic regression given the data and an overlapping group 
 - `groups::Vector{Vector{Int}}`: each element denotes member variables of each group. A variable may appear in multiple groups.
 - `eval_obj::Bool`: whether to evaluate the objective function
 """
-function LogisticVariables{T}(X::Matrix, X_unpen::Matrix, y::AbstractVector, lambda::T2,
+function LogisticVariables{T}(X::Matrix, X_unpen::VecOrMat, y::AbstractVector, lambda::T2,
     groups::Vector{Vector{Int}};
     σ=nothing, eval_obj=true) where {T <: Real, T2 <: Real}
 
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))
-
-    X_map = mapper(X, X_unpen)
+    X_unpen_ = reshape(X_unpen, :, 1)
+    X_map = mapper(X, X_unpen_)
 
     penalty = GroupNormL2(lambda, grpidx)
 
@@ -135,11 +135,13 @@ function get_objective!(u::LogisticUpdate, v::LogisticVariables{T,A}) where {T,A
     if v.eval_obj
         mul!(v.probs, v.X, v.β)
         logistic!(v.probs, v.probs)
-        obj = sum(v.y .* log.(v.probs) .+ (one(T) .- v.y) .* log.(one(T) .- v.probs)) / size(v.X, 1) .- value(v.penalty, v.β)
+        loglik = sum(v.y .* log.(v.probs) .+ (one(T) .- v.y) .* log.(one(T) .- v.probs)) / size(v.X, 1)
+        pen = value(v.penalty, v.β)
+        obj = loglik - pen
         reldiff = (abs(obj - v.obj_prev))/(abs(obj) + one(T))
         converged =  reldiff < u.tol
         v.obj_prev = obj
-        return converged, (obj, reldiff, nnz)
+        return converged, (obj, loglik, pen, reldiff, nnz)
     else
         v.grad .= (v.β_prev .- v.β)
         relchange = norm(v.grad) / (norm(v.β) + 1e-20)
