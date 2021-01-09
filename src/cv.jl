@@ -154,7 +154,7 @@ Perform `k`-fold cross validation for Cox regression with overlapping group lass
 - `k`: fold.
 - `T`: A type of AbstractFloat.
 """
-function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, δ::AbstractVector, t::AbstractVector,
+function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractVecOrMat, δ::AbstractVector, t::AbstractVector,
     groups::Vector{Vector{Int}}, lambdas::AbstractVector{<:Real}, k::Integer;
     T=Float64, eval_obj=true)
     gen = StratifiedKfold(δ, k)
@@ -238,7 +238,7 @@ Perform `k`-fold cross validation for logistic regression with overlapping group
 - `k`: fold.
 - `T`: A type of AbstractFloat.
 """
-function cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractMatrix, y::AbstractVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
+function cross_validate(u::LogisticUpdate, X::AbstractMatrix, X_unpen::AbstractVecOrMat, y::AbstractVector, groups::Vector{Vector{Int}}, lambdas::Vector{<:Real}, k::Int;
     T=Float64, criteria=accuracy, eval_obj=true)
     gen = StratifiedKfold(y, k)
     n = size(X, 1)
