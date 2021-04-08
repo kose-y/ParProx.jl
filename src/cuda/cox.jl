@@ -12,8 +12,11 @@ function COXVariables{T}(X::CuMatrix, X_unpen::CuMatrix, δ::CuVector, t::CuVect
     X_map = mapper(X, X_unpen)
 
     penalty = GroupNormL2{T, CuArray}(lambda, grpidx)
-
-    COXVariables{T,CuArray}(X_map, δ, t, penalty; eval_obj=eval_obj)
+    if σ !== nothing
+        return COXVariables{T,CuArray}(X_map, δ, t, penalty; σ=σ, eval_obj=eval_obj)
+    else
+        return COXVariables{T,CuArray}(X_map, δ, t, penalty; eval_obj=eval_obj)
+    end
 end
 
 function π_δ_kernel!(out, w, W, δ, breslow)

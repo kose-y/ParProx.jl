@@ -113,7 +113,7 @@ Perform `k`-fold cross validation for penalized Cox regression.
 - `T`: A type of AbstractFloat.
 """
 function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penalties::Vector{P}, k::Int;
-    T=Float64, A=Array, mapper=Base.identity, eval_obj=true) where P <: Penalty
+    T=Float64, A=Array, mapper=Base.identity, eval_obj=true, σ=nothing) where P <: Penalty
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     scores = Array{Float64}(undef, length(penalties), k)
@@ -126,7 +126,12 @@ function cross_validate(u::COXUpdate, X::Matrix, δ::Vector, t::Vector, penaltie
         t_train = t[train_inds]
         t_test = t[test_inds]
         p = penalties[1]
-        V = ParProx.COXVariables{T, A}(adapt(A{T}, X_train), adapt(A{T}, δ_train), adapt(A{T}, t_train), p; eval_obj=eval_obj)
+        if σ === nothing
+            V = ParProx.COXVariables{T, A}(adapt(A{T}, X_train), adapt(A{T}, δ_train), adapt(A{T}, t_train), p; eval_obj=eval_obj)
+        else
+            V = ParProx.COXVariables{T, A}(adapt(A{T}, X_train), adapt(A{T}, δ_train), adapt(A{T}, t_train), p; eval_obj=eval_obj,
+                σ=σ)
+        end
         for (i, p) in enumerate(penalties)
             V.penalty = p
             V.obj_prev = -Inf
@@ -160,7 +165,7 @@ Perform `k`-fold cross validation for Cox regression with overlapping group lass
 """
 function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractVecOrMat, δ::AbstractVector, t::AbstractVector,
     groups::Vector{Vector{Int}}, lambdas::AbstractVector{<:Real}, k::Integer;
-    T=Float64, eval_obj=true)
+    T=Float64, eval_obj=true, σ=nothing)
     gen = StratifiedKfold(δ, k)
     n = size(X, 1)
     mapper, grpmat, grpidx = mapper_mat_idx(groups, size(X, 2))
@@ -174,7 +179,11 @@ function cross_validate(u::COXUpdate, X::AbstractMatrix, X_unpen::AbstractVecOrM
         t_train = t[train_inds]
         t_test = t[test_inds]
         p = GroupNormL2(lambdas[1], grpidx)
-        V = ParProx.COXVariables{T, Array}(X_train, δ_train, t_train, p; eval_obj=eval_obj)
+        if σ !== nothing
+            V = ParProx.COXVariables{T, Array}(X_train, δ_train, t_train, p; eval_obj=eval_obj, σ=σ)
+        else
+            V = ParProx.COXVariables{T, Array}(X_train, δ_train, t_train, p; eval_obj=eval_obj)
+        end
         for (i, l) in enumerate(lambdas)
             p = GroupNormL2(l, grpidx)
             V.penalty = p
