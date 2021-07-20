@@ -7,4 +7,4 @@
 
 GPU-Parallel L1- and (overlapping) group-penalized logistic regression and Cox proportional hazard regression using the proximal gradient method.
 
-S. Ko, G. X. Li, H. Choi, and J.-H. Won (2021). Computationally scalable regression modeling for large-scale clinical omics data with ParProx. bioRxiv preprint [doi:10.1101/2021.01.10.426142](https://doi.org/10.1101/2021.01.10.426142).
+S. Ko, G. X. Li, H. Choi, and J.-H. Won (2021). Computationally scalable regression modeling for large-scale clinical omics data with ParProx. _Briefings in Bioinformatics_, bbab256. [doi:10.1093/bib/bbab256](https://doi.org/10.1093/bib/bbab256).
