@@ -75,7 +75,7 @@ Create three items.
 function mapper_mat_idx(groups::Vector{Vector{Int}}, n_vars::Int; sparsemapper::Function=Base.identity)
     rowval = vcat(groups...)
     colptr = collect(1:(length(rowval) + 1))
-    nzval = ones(length(colptr))
+    nzval = ones(length(colptr) - 1)
 
     grpmat = sparsemapper(SparseMatrixCSC(n_vars, length(rowval), colptr, rowval, nzval))
 
